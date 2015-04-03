@@ -20,12 +20,20 @@ using UnityEngine.UI;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.IO;
+using System;
 
 
 public class MinimalVideoTextureGraphic : Graphic {
 
+	#if (UNITY_IOS == true) && (UNITY_EDITOR == false)
+	public string shaderPath = "MinimalVideoTexture/MinimalVideoTextureGUI";
+	#else
+	public string shaderPath = null;
+	#endif
 	public string resourcePath;
 	public bool loops;
+
+	public Action MovieDidFinishBlock;
 
 	#if (UNITY_IOS == true) && (UNITY_EDITOR == false)
 	private int mvtID = 0;
@@ -33,15 +41,15 @@ public class MinimalVideoTextureGraphic : Graphic {
 	private Texture2D lumaTexture2D = null;
 	#else
 	private MovieTexture movieTexture;
+	private bool waitingForMovieToEnd;
 	#endif
 
 	public override Material defaultMaterial {
 		get {
-			#if (UNITY_IOS == true) && (UNITY_EDITOR == false)
-			return new Material (Shader.Find ("MinimalVideoTexture/MinimalVideoTextureGUI"));
-			#else
+			if (shaderPath != null) {
+				return new Material (Shader.Find (shaderPath));
+			}
 			return base.defaultMaterial;
-			#endif
 		}
 	}
 
@@ -85,32 +93,52 @@ public class MinimalVideoTextureGraphic : Graphic {
 
 	public void Update() {
 
+
+
+
 		#if (UNITY_IOS == true) && (UNITY_EDITOR == false)
 		GL.IssuePluginEvent(mvtID);
 
-		int chromaTxt = MinimalVideoTexture.GetChromaTextureName(mvtID);
-		int lumaTxt = MinimalVideoTexture.GetLumaTextureName(mvtID);
+		if(MinimalVideoTexture.IsFinished(mvtID) == false) {
+			int chromaTxt = MinimalVideoTexture.GetChromaTextureName(mvtID);
+			int lumaTxt = MinimalVideoTexture.GetLumaTextureName(mvtID);
 
-		if (chromaTxt > 0) {
-			Material localMaterial = canvasRenderer.GetMaterial ();
+			if (chromaTxt > 0) {
+				Material localMaterial = canvasRenderer.GetMaterial ();
 
-			if (chromaTexture2D == null) {
-				chromaTexture2D = Texture2D.CreateExternalTexture (16, 16, TextureFormat.RGB24, false, false, (System.IntPtr)chromaTxt);
-				localMaterial.SetTexture ("_ChromaTex", chromaTexture2D);
-			} else {
-				chromaTexture2D.UpdateExternalTexture ((System.IntPtr)chromaTxt);
+				if (chromaTexture2D == null) {
+					chromaTexture2D = Texture2D.CreateExternalTexture (16, 16, TextureFormat.RGB24, false, false, (System.IntPtr)chromaTxt);
+					localMaterial.SetTexture ("_ChromaTex", chromaTexture2D);
+				} else {
+					chromaTexture2D.UpdateExternalTexture ((System.IntPtr)chromaTxt);
+				}
+
+				if (lumaTexture2D == null) {
+					lumaTexture2D = Texture2D.CreateExternalTexture (16, 16, TextureFormat.Alpha8, false, false, (System.IntPtr)lumaTxt);
+					localMaterial.SetTexture ("_LumaTex", lumaTexture2D);
+				} else {
+					lumaTexture2D.UpdateExternalTexture ((System.IntPtr)lumaTxt);
+				}
 			}
-
-			if (lumaTexture2D == null) {
-				lumaTexture2D = Texture2D.CreateExternalTexture (16, 16, TextureFormat.Alpha8, false, false, (System.IntPtr)lumaTxt);
-				localMaterial.SetTexture ("_LumaTex", lumaTexture2D);
-			} else {
-				lumaTexture2D.UpdateExternalTexture ((System.IntPtr)lumaTxt);
+		} else {
+			if(MovieDidFinishBlock != null){
+				MovieDidFinishBlock();
 			}
 		}
 		#else
-		if(movieTexture != null && movieTexture.isReadyToPlay == true && movieTexture.isPlaying == false){
-			movieTexture.Play();
+		if(movieTexture != null){
+
+			if(movieTexture.isPlaying == false && waitingForMovieToEnd == true){
+				if(MovieDidFinishBlock != null) {
+					MovieDidFinishBlock();
+				}
+				waitingForMovieToEnd = false;
+			}
+
+			if(movieTexture.isReadyToPlay == true && movieTexture.isPlaying == false){
+				movieTexture.Play();
+				waitingForMovieToEnd = true;
+			}
 		}
 		#endif
 	}

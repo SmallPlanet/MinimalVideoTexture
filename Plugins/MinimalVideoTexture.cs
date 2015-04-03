@@ -34,6 +34,9 @@ public static class MinimalVideoTexture {
 	private static extern int NativeMVTSetLoops(int mvtID, bool loops);
 
 	[DllImport ("__Internal")]
+	private static extern int NativeMVTIsFinished(int mvtID);
+
+	[DllImport ("__Internal")]
 	private static extern int NativeMVTPlay(int mvtID);
 
 	[DllImport ("__Internal")]
@@ -65,6 +68,14 @@ public static class MinimalVideoTexture {
 		return NativeMVTDestroy(mvtID);
 		#else
 		return 0;
+		#endif
+	}
+
+	public static bool IsFinished(int mvtID) {
+		#if (UNITY_IOS == true) && (UNITY_EDITOR == false)
+		return (NativeMVTIsFinished(mvtID) != 0);
+		#else
+		return false;
 		#endif
 	}
 

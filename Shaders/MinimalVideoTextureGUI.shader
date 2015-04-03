@@ -91,7 +91,7 @@ Shader "MinimalVideoTexture/MinimalVideoTextureGUI"
            								1,			-0.18732, 		-0.46813,
            								1, 			1.8556,      	0), yuv);
 
-				return fixed4(rgb, 1);
+				return fixed4(rgb, 1) * IN.color;
 			}
 		ENDCG
 		}

@@ -51,6 +51,7 @@
     NSDate * restartDate;
     NSString * moviePath;
     
+    BOOL isFinished;
     BOOL isPlaying;
     BOOL loadingDidFinish;
     BOOL shouldCallPublishOnEnd;
@@ -79,6 +80,8 @@
 - (void) playMovie;
 - (void) stopMovie;
 - (void) restartMovie;
+
+- (BOOL) isFinished;
 
 - (void) setVolume:(float)f;
 

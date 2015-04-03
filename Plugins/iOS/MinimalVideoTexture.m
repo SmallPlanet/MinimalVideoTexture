@@ -71,6 +71,11 @@ int NativeMVTSetLoops(int mvtID, bool loops) {
     return mvt.looping = loops;
 }
 
+int NativeMVTIsFinished(int mvtID) {
+    MinimalVideoTexture * mvt = GetMVTFromMVTID(mvtID);
+    return (int)[mvt isFinished];
+}
+
 int NativeMVTPlay(int mvtID) {
     MinimalVideoTexture * mvt = GetMVTFromMVTID(mvtID);
     [mvt playMovie];
@@ -199,6 +204,10 @@ IMPL_APP_CONTROLLER_SUBCLASS(MyAppController)
     return currentFrameTime;
 }
 
+- (BOOL) isFinished {
+    return isFinished;
+}
+
 - (void) playMovie
 {
     isPlaying = YES;
@@ -260,6 +269,7 @@ IMPL_APP_CONTROLLER_SUBCLASS(MyAppController)
     }
     
     urlAssetHasBeenLoaded = NULL;
+    isFinished = NO;
     
     AVURLAsset * urlAsset = [[AVURLAsset alloc] initWithURL:url options: options];
     NSArray *keys = [NSArray arrayWithObject:@"playable"];
@@ -502,6 +512,7 @@ IMPL_APP_CONTROLLER_SUBCLASS(MyAppController)
         {
             if(shouldCallPublishOnEnd)
             {
+                isFinished = true;
                 [[self retain] autorelease];
                 shouldCallPublishOnEnd = NO;
             }

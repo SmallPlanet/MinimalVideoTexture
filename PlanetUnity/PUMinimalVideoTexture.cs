@@ -19,6 +19,7 @@ using System.Collections;
 
 public class PUMinimalVideoTexture : PUGameObject {
 
+	private string onFinished = null;
 	private string resourcePath = null;
 	private bool loops = false;
 
@@ -31,6 +32,11 @@ public class PUMinimalVideoTexture : PUGameObject {
 			attrib = reader.GetAttribute ("resourcePath");
 			if (attrib != null) {
 				resourcePath = attrib;
+			}
+
+			attrib = reader.GetAttribute ("onFinished");
+			if (attrib != null) {
+				onFinished = attrib;
 			}
 
 			attrib = reader.GetAttribute ("loops");
@@ -47,6 +53,11 @@ public class PUMinimalVideoTexture : PUGameObject {
 		MinimalVideoTextureGraphic mvt = gameObject.AddComponent<MinimalVideoTextureGraphic>();
 		mvt.loops = loops;
 		mvt.resourcePath = resourcePath;
+		if (onFinished != null) {
+			mvt.MovieDidFinishBlock = () => {
+				NotificationCenter.postNotification (Scope (), this.onFinished, NotificationCenter.Args("sender", this));
+			};
+		}
 	}
 
 	// This is required for application-level subclasses
