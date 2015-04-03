@@ -51,7 +51,7 @@ int NativeMVTCreate(const char * moviePath) {
         activeMVTTextures = [[NSMutableArray array] retain];
     }
     
-    MinimalVideoTexture * mvt = [[MinimalVideoTexture alloc] init];
+    MinimalVideoTexture * mvt = [[[MinimalVideoTexture alloc] init] autorelease];
     [mvt createMovieTextureWithMoviePath:[NSString stringWithUTF8String:moviePath]];
     [mvt playMovie];
     [activeMVTTextures addObject:mvt];
@@ -60,6 +60,9 @@ int NativeMVTCreate(const char * moviePath) {
 }
 
 int NativeMVTDestroy(int mvtID) {
+    MinimalVideoTexture * mvt = GetMVTFromMVTID(mvtID);
+    [mvt stopMovie];
+    [activeMVTTextures removeObject:mvt];
     return 0;
 }
 

@@ -1,14 +1,18 @@
-# MinimalVideoTexture
+# Minimal Video Texture
 Minimal Video Texture (MVT) Native iOS Plugin for Unity is a compact and simple way to utilize direct CoreVideo texture rendering for local movies in Unity Pro for iOS.
 
 
 ## Notes
 
+ * MVT is relatively new and untested; you have been warned
  * Supports OpenGL only ( no Metal )
  * Supports iOS only ( if not iOS it will attempt to fall back to MovieTextures )
- * Uses YUV decoding, so it requires a custom shader to merge the chroma and luma textures
- * Includes shader and Graphic subclass suitable for using in uGUI
- * Includes PlanetUnity entity for easy integration with PlanetUnity
+ * Supports multiple concurrent movies
+ * Uses YUV decoding for maximum performance, so it requires a custom shader to merge the chroma and luma textures
+ * Includes a custom shader and Graphic subclass suitable for using in uGUI
+ * Includes a PUMinialVideoTexture class for easy integration with PlanetUnity
+ * Does not support scrubbing/seeking
+ * Does support looping and audio playback
 
 
  
@@ -23,12 +27,63 @@ Minimal Video Texture (MVT) Native iOS Plugin for Unity is a compact and simple 
 
 
 ## How To Use
-*Short example instructions on how to use MVT in uGUI*
+*How to use MVT with uGUI*
 
   1. Add the MinimalVideoTextureGraphic component to a uGUI GameObject
   2. Put the name of the video (including the extension) into Resourse Path
   3. Put the movie in the Assets/StreamingAssets 
+  
+*How to use MVT with scripting*
 
+	// Create a new MVT movie
+	#if (UNITY_IOS == true) && (UNITY_EDITOR == false)
+	string path = Application.streamingAssetsPath + "/" + resourcePath;
+	mvtID = MinimalVideoTexture.Create (path);
+	return null;
+	#endif
+	
+	// During an Update, give the plugin time to process new frames, then update to latest textures.
+	// You are responsible for creating a Texture2D using Texture2D.CreateExternalTexture and
+	// calling UpdateExternalTexture after GL.IssuePluginEvent(mvtID);
+	// In addition, if you are using the supplied shader, you need to set the chroma and luma textures
+	// on the material properly
+	public void Update() {
+
+		#if (UNITY_IOS == true) && (UNITY_EDITOR == false)
+		// Allow the plugin time to process the movie on a render thead
+		GL.IssuePluginEvent(mvtID);
+
+		int chromaTxt = MinimalVideoTexture.GetChromaTextureName(mvtID);
+		int lumaTxt = MinimalVideoTexture.GetLumaTextureName(mvtID);
+
+		if (chromaTxt > 0) {
+			Material localMaterial = canvasRenderer.GetMaterial ();
+
+			if (chromaTexture2D == null) {
+				chromaTexture2D = Texture2D.CreateExternalTexture (16, 16, TextureFormat.RGB24, false, false, (System.IntPtr)chromaTxt);
+				localMaterial.SetTexture ("_ChromaTex", chromaTexture2D);
+			} else {
+				chromaTexture2D.UpdateExternalTexture ((System.IntPtr)chromaTxt);
+			}
+
+			if (lumaTexture2D == null) {
+				lumaTexture2D = Texture2D.CreateExternalTexture (16, 16, TextureFormat.Alpha8, false, false, (System.IntPtr)lumaTxt);
+				localMaterial.SetTexture ("_LumaTex", lumaTexture2D);
+			} else {
+				lumaTexture2D.UpdateExternalTexture ((System.IntPtr)lumaTxt);
+			}
+		}
+		#endif
+	}
+	
+	// When you're all done with it, make sure to destroy it or it will stay around
+	protected override void OnDestroy() {
+		#if (UNITY_IOS == true) && (UNITY_EDITOR == false)
+		MinimalVideoTexture.Destroy (mvtID);
+		#endif
+	}
+	
+	
 
 
 ## License
